@@ -9,38 +9,28 @@
  * pp_ptree routine
  */
 
-pp_ptree_list([]).
-pp_ptree_list([node(Label,[])|T]) :-
-  write(Label),
-  nl,
-  pp_ptree_list(T).
-pp_ptree_list([node(Label,[First|Rest])|T]) :-
-  pp_nonterminal_node(Label,First,Rest,0),
-  nl,
-  pp_ptree_list(T).
+pp_ptree_list([],_,_).
+pp_ptree_list([node(Label1,[node(Label2,[])])|T],Indent,Embedding) :-
+  !,
+  ( Embedding == 0 -> write(' (') ; nl, tab(Indent), write('(') ),
+  write(Label1),
+  write(' '),
+  write(Label2),
+  write(')'),
+  pp_ptree_list(T,Indent,Embedding).
+pp_ptree_list([node(Label,NodeList)|T],Indent,_) :-
+  pp_nonpreterminal_node(Label,NodeList,Indent),
+  ( Indent == 0 -> nl ; true ),
+  pp_ptree_list(T,Indent,1).
 
-pp_ptree_first_child(node(Label,[]), _) :-
-  tab(1),
-  write(Label).
-pp_ptree_first_child(node(Label,[First|Rest]), Column) :-
-  tab(1),
-  pp_nonterminal_node(Label,First,Rest,Column).
-
-pp_ptree_rest([], _) :-
-  write(')').
-pp_ptree_rest([node(Label,[First|Rest])|T], Column) :-
+pp_nonpreterminal_node(Label,NodeList,Indent) :-
   nl,
-  tab(Column),
-  pp_nonterminal_node(Label,First,Rest,Column),
-  pp_ptree_rest(T, Column).
-
-pp_nonterminal_node(Label,First,Rest,Column) :-
+  tab(Indent),
   write('('),
   write(Label),
-  atom_length(Label, More),
-  NextColumn is Column+More+2,
-  pp_ptree_first_child(First, NextColumn),
-  pp_ptree_rest(Rest, NextColumn).
+  NextIndent is Indent+2,
+  pp_ptree_list(NodeList,NextIndent,0),
+  write(')').
 
 /*
  * main parse routine
@@ -53,11 +43,11 @@ parse(Goal) :-
   append(L1,[[X],[]],L2),
   Goal2 =.. L2,
   setof(X, tphrase(Goal2), R),
-  pp_ptree_list(R).
+  pp_ptree_list(R,0,0).
 parse(Goal) :-
   Goal =.. L1,
   append(L1,[[X,Y|T],[]],L2),
   Goal2 =.. L2,
   setof(node('',[X,Y|T]), tphrase(Goal2), R),
-  pp_ptree_list(R).
+  pp_ptree_list(R,0,0).
 
